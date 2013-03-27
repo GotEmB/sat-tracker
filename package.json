@@ -1,0 +1,27 @@
+{
+  "name": "sat-tracker",
+  "version": "0.0.0",
+  "description": "Show's satellite's path using ArcGIS JS API",
+  "main": "web.coffee",
+  "dependencies": {
+    "request": "~2.16.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GotEmB/sat-tracker.git"
+  },
+  "keywords": [
+    "ArcGIS",
+    "ESRI",
+    "Satellite",
+    "Tracker"
+  ],
+  "author": "Gautham Badhrinathan",
+  "license": "BSD",
+  "gitHead": "a9d9da45184cb14c8542d2ab2fd18057277a0ced",
+  "readmeFilename": "README.md"
+}
