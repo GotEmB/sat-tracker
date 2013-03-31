@@ -3,18 +3,44 @@
 # Author: Gautham Badhrinathan (gbadhrinathan@esri.com)
 */
 
-require(["dojo/ready", "esri/map", "esri/geometry/Point", "dojo/parser", "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dijit/TitlePane", "esri/dijit/Attribution"], function(registry, ready, Map, Point) {
+var extend;
+
+extend = function(obj, mixin) {
+  var method, name;
+  for (name in mixin) {
+    method = mixin[name];
+    obj[name] = method;
+  }
+  return obj;
+};
+
+require(["dojo/ready", "esri/map", "esri/geometry/Point", "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "dojo/_base/Color", "esri/graphic", "dojo/_base/connect", "esri/layers/FeatureLayer", "esri/tasks/Query", "dojo/parser", "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dijit/TitlePane", "esri/dijit/Attribution"], function(ready, Map, Point, SimpleMarkerSymbol, SimpleLineSymbol, Color, Graphic, connect, FeatureLayer, Query) {
   return ready(function() {
-    var map, _ref;
+    var map;
     map = new Map("map", {
       center: [-56.049, 38.485],
       zoom: 3,
       basemap: "streets"
     });
-    return (_ref = navigator.geolocation) != null ? _ref.getCurrentPosition(function(_arg) {
-      var coords;
-      coords = _arg.coords;
-      return map.centerAndZoom(new Point(coords.longitude, coords.latitude), 8);
-    }) : void 0;
+    return connect.connect(map, "onLoad", function() {
+      var fl, _ref;
+      if ((_ref = navigator.geolocation) != null) {
+        _ref.getCurrentPosition(function(_arg) {
+          var coords, gfx, sbl;
+          coords = _arg.coords;
+          map.centerAndZoom(new Point(coords.longitude, coords.latitude), 8);
+          sbl = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 20, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([200, 50, 50]), 4), new Color([200, 200, 50, 0.6]));
+          gfx = new Graphic(new Point(coords.longitude, coords.latitude), sbl);
+          return map.graphics.add(gfx);
+        });
+      }
+      fl = new FeatureLayer("http://lamborghini:6080/arcgis/rest/services/l7_rowpath/MapServer/0");
+      return connect.connect(fl, "onLoad", function() {
+        var _this = this;
+        return fl.queryFeatures(extend(new Query, {
+          where: "row = " + 22 + " and path = " + 202
+        }), function(features) {});
+      });
+    });
   });
 });

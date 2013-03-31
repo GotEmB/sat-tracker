@@ -17,7 +17,7 @@ exports.decodeTimeString = (timeString, fileUrl) ->
 	res = /(\d{3})-(\d{2}):(\d{2}):(\d{2})/g.exec timeString
 	return unless res?
 	[str, days, hour, minute, second] = res
-	new Date Date.UTC exports.decodeUrl(fileUrl).year, 0, days, hour,  minute, second
+	new Date Date.UTC exports.decodeUrl(fileUrl).year, 0, days, hour, minute, second
 
 exports.parseFileAtUrl = (url, callback) ->
 	request url, (err, res, body) ->
@@ -34,7 +34,15 @@ exports.parseFileAtUrl = (url, callback) ->
 				downlinkTime: exports.decodeTimeString downlinkTime, url
 		callback? ret
 
-exports.getRowPath = (time) ->
-	
-
+exports.getRowPath = (time, callback) ->
+	exports.parseFileAtUrl(
+		exports.createUrl
+			year: time.getUTCFullYear()
+			month: time.getUTCMonth() + 1
+			day: time.getUTCDate()
+		(snaps) ->
+			ret = null
+			(ret = snap unless ret? and Math.abs(snap.imageTime - time) > Math.abs(ret.imageTime - time)) for snap in snaps
+			callback? row: ret.row, path: ret.path
+	)
 # http://landsat.usgs.gov/L7_Pend_Acq/y2013/Mar/Mar-27-2013.txt
