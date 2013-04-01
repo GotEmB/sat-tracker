@@ -1,5 +1,10 @@
 request = require "request"
 
+Array::distinct = (predicate = (x) -> x) ->
+	ret = []
+	(ret.push elem unless ret.some (x) -> predicate(x) is predicate(elem)) for elem in @
+	ret
+
 months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 exports.decodeUrl = (url) ->
@@ -41,8 +46,28 @@ exports.getRowPath = (time, callback) ->
 			month: time.getUTCMonth() + 1
 			day: time.getUTCDate()
 		(snaps) ->
-			ret = null
-			(ret = snap unless ret? and Math.abs(snap.imageTime - time) > Math.abs(ret.imageTime - time)) for snap in snaps
-			callback? row: ret.row, path: ret.path
+			cbefore = snaps
+				.filter((x) -> x.imageTime < time)
+				.sort((a, b) -> if Math.abs(a.imageTime - time) < Math.abs(b.imageTime - time) then -1 else 1)
+				.distinct((x) -> Number x.imageTime)
+				.slice(0, 1)
+				.map (x) -> (row: x.row, path: x.path, time: x.imageTime)
+			cafter = snaps
+				.filter((x) -> x.imageTime > time)
+				.sort((a, b) -> if Math.abs(a.imageTime - time) < Math.abs(b.imageTime - time) then -1 else 1)
+				.distinct((x) -> Number x.imageTime)
+				.slice(0, 1)
+				.map (x) -> (row: x.row, path: x.path, time: x.imageTime)
+			if cbefore? and cafter?
+				rarr = cbefore.concat cafter
+			else
+				rarr = snaps
+					.sort((a, b) -> if Math.abs(a.imageTime - time) < Math.abs(b.imageTime - time) then -1 else 1)
+					.distinct((x) -> Number x.imageTime)
+					.slice(0, 2)
+					.map (x) -> (row: x.row, path: x.path, time: x.imageTime)
+			callback? do ->
+				snaps: rarr
+				time: time
 	)
 # http://landsat.usgs.gov/L7_Pend_Acq/y2013/Mar/Mar-27-2013.txt
