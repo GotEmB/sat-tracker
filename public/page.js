@@ -14,7 +14,7 @@ extend = function(obj, mixin) {
   return obj;
 };
 
-require(["dojo/ready", "esri/map", "esri/geometry/Point", "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "dojo/_base/Color", "esri/graphic", "dojo/_base/connect", "esri/layers/FeatureLayer", "esri/tasks/Query", "dojo/parser", "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dijit/TitlePane", "esri/dijit/Attribution"], function(ready, Map, Point, SimpleMarkerSymbol, SimpleLineSymbol, Color, Graphic, connect, FeatureLayer, Query) {
+require(["dojo/ready", "esri/map", "esri/geometry/Point", "esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "dojo/_base/Color", "esri/graphic", "dojo/_base/connect", "esri/layers/FeatureLayer", "esri/tasks/query", "dojo/request", "dojo/parser", "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dijit/TitlePane", "esri/dijit/Attribution"], function(ready, Map, Point, SimpleMarkerSymbol, SimpleLineSymbol, Color, Graphic, connect, FeatureLayer, Query, request) {
   return ready(function() {
     var map;
     map = new Map("map", {
@@ -23,23 +23,35 @@ require(["dojo/ready", "esri/map", "esri/geometry/Point", "esri/symbols/SimpleMa
       basemap: "streets"
     });
     return connect.connect(map, "onLoad", function() {
-      var fl, _ref;
-      if ((_ref = navigator.geolocation) != null) {
-        _ref.getCurrentPosition(function(_arg) {
-          var coords, gfx, sbl;
-          coords = _arg.coords;
-          map.centerAndZoom(new Point(coords.longitude, coords.latitude), 8);
-          sbl = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 20, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([200, 50, 50]), 4), new Color([200, 200, 50, 0.6]));
-          gfx = new Graphic(new Point(coords.longitude, coords.latitude), sbl);
-          return map.graphics.add(gfx);
-        });
-      }
+      var fl;
       fl = new FeatureLayer("http://lamborghini:6080/arcgis/rest/services/l7_rowpath/MapServer/0");
       return connect.connect(fl, "onLoad", function() {
-        var _this = this;
-        return fl.queryFeatures(extend(new Query, {
-          where: "row = " + 22 + " and path = " + 202
-        }), function(features) {});
+        var gfx;
+        gfx = null;
+        return setInterval(function() {
+          return request.get("/l7/getRowPath", {
+            handleAs: "json"
+          }).then(function(_arg) {
+            var path, row;
+            row = _arg.row, path = _arg.path;
+            return fl.queryFeatures(extend(new Query, {
+              where: "row = " + row + " and path = " + path
+            }), function(_arg1) {
+              var feature, sbl;
+              feature = _arg1.features[0];
+              sbl = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 20, new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, new Color([200, 50, 50]), 4), new Color([200, 200, 50, 0.6]));
+              if (gfx != null) {
+                return gfx.setGeometry(feature.geometry.getExtent().getCenter());
+              } else {
+                map.centerAndZoom(feature.geometry.getExtent().getCenter(), 3);
+                gfx = new Graphic(feature.geometry.getExtent().getCenter(), sbl);
+                return map.graphics.add(gfx);
+              }
+            }, function(error) {
+              return console.error(error);
+            });
+          });
+        }, 1000)();
       });
     });
   });
